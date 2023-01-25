@@ -1,0 +1,13 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: <sqljob>
+spec:
+  template:
+    spec:
+      containers:
+      - name: <sqljob>
+        image: docker.io/rfsonders/hammerdb:sondersv3
+        command: ["/bin/sh","-c"]
+        args: [ "./hammerdbcli auto autorundrive.tcl" ]
+      restartPolicy: Never
