@@ -2,8 +2,7 @@
 $hammerdbNamespace = 'hammer-db-ns'
 # SQL Server related configs
 $sqlEnv="linux"  # this variable can be set to either of these two values (linux or windows)
-$mssqlips="10.129.80.55", "10.129.80.56","10.129.80.57"
-$mssqlport=""       # comma sepreted SQL ports, if not provided, it will use deport 1433 
+$mssqlips="10.129.80.55", "10.129.80.56", "10.129.80.57", "10.129.80.58", "10.129.80.59" 
 $mssqlUser='miadmin'
 $mssqlPass='!!123abc' 
 $mssqlDatabase='tpcc'
@@ -11,6 +10,6 @@ $backupLocation="/var/opt/mssql/backups"  #Location to keep backup and other use
 # Load run config
 # rampupTime and execTime in minutes per user load
 $userLoadSet=3
-$loadRunUser='2 4 6'
+$loadRunUser='10 20 30'
 $rampupTime=1 
-$execTime=2
+$execTime=5

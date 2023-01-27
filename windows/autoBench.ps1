@@ -1,14 +1,16 @@
 param ($type)
 $workingDirectory = Split-Path $((Get-Variable MyInvocation).Value).MyCommand.Path
 Import-Module -Name "$workingDirectory\conf.ps1" -Force
-Import-Module -Name "$workingDirectory\usefulFunctions.ps1" -Force
 $finalPath = Join-Path $workingDirectory "final\"
 $tclPath = Join-Path $workingDirectory "tcl\"
 $templatePath = Join-Path $workingDirectory "template\"
 $scriptsPath = Join-Path $workingDirectory "scripts\"
+Import-Module -Name "$scriptsPath\usefulFunctions.ps1" -Force
+
+$sqlips = $mssqlips
 
 if (($type -eq "copyDb")  -or ($type -eq "all")){
-    Write-Host "Not Implemented yet .." -ForegroundColor Yellow
+    Write-Host "CopyDb functionality is Not Implemented yet .." -ForegroundColor Yellow
 }
 if (($type -eq "restoreDb") -or ($type -eq "allWithoutCopyDB") -or ($type -eq "all")){
     Write-Host "Starting database restore on targer sql instance/s .." -ForegroundColor Yellow
@@ -17,7 +19,7 @@ if (($type -eq "restoreDb") -or ($type -eq "allWithoutCopyDB") -or ($type -eq "a
     $n = 1
     foreach ($ip in $sqlips){
         $jname = "restore-job-"+ $n.ToString()
-        Write-Host $jname
+        #Write-Host $jname
         Start-Job -Name $jName -ScriptBlock { 
             Param ($Path, $restoreScript, $ip, $mssqlUser, $mssqlPass)
             cd $Path
@@ -35,7 +37,7 @@ if (($type -eq "restoreDb") -or ($type -eq "allWithoutCopyDB") -or ($type -eq "a
         Start-Sleep -s 3
         $noOfRow = $noOfRow +1
     }
-
+    Write-Host ""
 }
 if (($type -eq "setup") -or ($type -eq "allWithoutCopyDB") -or ($type -eq "all")){
     Write-Host "Generating .TCL and .YAML files based on autoBench config file" -ForegroundColor Yellow
@@ -96,42 +98,61 @@ if (($type -eq "setup") -or ($type -eq "allWithoutCopyDB") -or ($type -eq "all")
 
 
     Write-Host "Deploying hammerdb pods and copying hammerdb tcl file" -ForegroundColor Yellow
+    $tclFixedFileName = "autoRun-hammerdb-pod.tcl"
     $j = 1
+    foreach ($ip in $sqlips){
+        $yamlFileName=""
+        $yamlLocalPath=""
+        $yamlFileName = "hammerdb-pod-"+$j.ToString()+".yaml"
+        $yamlLocalPath = "final/"+$yamlFileName
+
+        kubectl delete -f $yamlLocalPath --force
+        Start-Sleep -Seconds 1
+        kubectl create -f $yamlLocalPath
+        
+        $j = $j + 1
+    }
+    kubectl -n $hammerdbNamespace get pods 
+    Write-Host "Waiting for container to be in working state"
+    Start-Sleep -Seconds 30
+    
+    $p = 1
+    foreach ($ip in $sqlips){
+        $podName=""
+        $podName = "hammerdb-pod-"+$p.ToString()
+        #Write-Host "Waiting for container to be in ready state"
+        do {
+            #kubectl -n $hammerdbNamespace get pods 
+            Start-Sleep -Seconds 1
+            #kubectl -n $hammerdbNamespace get pods $podName -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}'
+            #while ((kubectl -n $hammerdbNamespace get pods $podName -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') -ne 'True')
+        } while ((kubectl -n $hammerdbNamespace get pods $podName -o jsonpath="{.status.phase}") -ne 'Running')
+        $p = $p + 1
+    }
+
+    Start-Sleep -Seconds 5
+    kubectl -n $hammerdbNamespace get pods
+    $m = 1
     foreach ($ip in $sqlips){
         $podName=""
         $tclFileName=""
         $tclFilePath=""
         $tclPodPath=""
-        $podName = "hammerdb-pod-"+$j.ToString()
+        $podName = "hammerdb-pod-"+$m.ToString()
         $tclFileName = "autoRun-"+$podName+".tcl"
-        $yamlFileName = "hammerdb-pod-"+$j.ToString()+".yaml"
-        $yamlLocalPath = "final/"+$yamlFileName
-        $tclFixedFileName = "autoRun-hammerdb-pod.tcl"
-        #$tclLocalPath = "./tcl/"+$tclFileName
         $tclPodPath=$podName+":/home/hammerdb/HammerDB-4.6/"+$tclFixedFileName
-
-        #$fileName = $yml.FullName
-        #$tclFilePath = Join-Path $tclPath $tclFileName
         $tclFilePath = "tcl\"+$tclFileName
-        kubectl delete -f $yamlLocalPath --force
-        Start-Sleep -Seconds 5
-        kubectl create -f $yamlLocalPath
-        Write-Host "Waiting for container to be in ready state"
-        do {
-            kubectl -n $hammerdbNamespace get pods 
-            Start-Sleep -Seconds 2
-            #kubectl -n $hammerdbNamespace get pods $podName -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}'
-            #while ((kubectl -n $hammerdbNamespace get pods $podName -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') -ne 'True')
-        } while ((kubectl -n $hammerdbNamespace get pods $podName -o jsonpath="{.status.phase}") -ne 'Running')
-        
-        Start-Sleep -Seconds 40
-        kubectl -n $hammerdbNamespace get pods 
-        kubectl -n $hammerdbNamespace cp $tclFilePath $tclPodPath
-        $j = $j + 1
-    }
 
-    
+        $podName = "hammerdb-pod-"+$m.ToString()
+        $tclFileName = "autoRun-"+$podName+".tcl"
+        $tclFilePath = "tcl\"+$tclFileName
+
+        kubectl -n $hammerdbNamespace cp $tclFilePath $tclPodPath
+        Start-Sleep 1
+        $m = $m + 1
+    }         
 }
+
 if (($type -eq "exec") -or ($type -eq "allWithoutCopyDB") -or ($type -eq "all")){
     Write-Host "Starting monitoring process" -ForegroundColor Yellow
     $execDuration = (([int]$rampupTime * [int]$userLoadSet) + ([int]$execTime * [int]$userLoadSet) + 2 )
@@ -150,7 +171,7 @@ if (($type -eq "exec") -or ($type -eq "allWithoutCopyDB") -or ($type -eq "all"))
     $o = 1
     foreach ($ip in $sqlips){
         $jname = "mon-job-"+ $o.ToString()
-        Write-Host $jname
+        #Write-Host $jname
         Start-Job -Name $jName -ScriptBlock { 
             Param ($Path, $monitorScript, $ip, $mssqlUser, $mssqlPass)
             cd $Path
@@ -183,9 +204,10 @@ if (($type -eq "exec") -or ($type -eq "allWithoutCopyDB") -or ($type -eq "all"))
         Start-Sleep -s 10
         $noOfRow = $noOfRow +1
     }
+    Write-Host ""
 }
 if (($type -eq "report") -or ($type -eq "allWithoutCopyDB") -or ($type -eq "all")){
-    Write-Host "Not Implemented yet .." -ForegroundColor Yellow
+    Write-Host "Reprting functionality is Not Implemented yet .." -ForegroundColor Yellow
 }
 
 
