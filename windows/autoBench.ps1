@@ -6,13 +6,6 @@ $finalPath = Join-Path $workingDirectory "final\"
 $tclPath = Join-Path $workingDirectory "tcl\"
 $templatePath = Join-Path $workingDirectory "template\"
 $scriptsPath = Join-Path $workingDirectory "scripts\"
-$sqlport=""
-$sqlips = $mssqlips
-if ($mssqlport -eq ""){
-    $sqlport = "1433"
-}else {
-    $sqlport = $mssqlport
-}
 
 if (($type -eq "copyDb")  -or ($type -eq "all")){
     Write-Host "Not Implemented yet .." -ForegroundColor Yellow
