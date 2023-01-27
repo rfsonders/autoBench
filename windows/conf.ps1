@@ -10,6 +10,7 @@ $mssqlDatabase='tpcc'
 $backupLocation="/var/opt/mssql/backups"  #Location to keep backup and other useful scripts (do not provide back slash (/) at the end of the path)
 # Load run config
 # rampupTime and execTime in minutes per user load
+$userLoadSet=3
 $loadRunUser='2 4 6'
 $rampupTime=1 
 $execTime=2

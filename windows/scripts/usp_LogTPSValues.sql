@@ -1,14 +1,15 @@
 USE [master]
 GO
 
-/****** Object:  StoredProcedure [dbo].[usp_LogTPSValues]    Script Date: 1/27/2023 3:12:11 AM ******/
+/****** Object:  StoredProcedure [dbo].[usp_LogTPSValues]    Script Date: 1/27/2023 1:30:33 PM ******/
 SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE OR ALTER PROCEDURE [dbo].[usp_LogTPSValues]
+
+CREATE OR ALTER   PROCEDURE [dbo].[usp_LogTPSValues]
 (
 
 @DurationToLogInMinutes INT NULL
@@ -226,12 +227,13 @@ SET @loopcount = @DurationToLogInMinutes
 	--AND instance_name = RTRIM(LTRIM(@DatabaseName));
 
 --Get the UserCount for SPIDs connected to the DB
-	SELECT @UserCount = COUNT(es.session_id)
+	SELECT @UserCount = COUNT(es.session_id)-1
 	FROM sys.dm_exec_sessions AS es WITH (NOLOCK)
 	CROSS APPLY sys.dm_exec_input_buffer(es.session_id, NULL) AS ib
 	WHERE es.database_id = DB_ID(@DatabaseName)
 	AND es.session_id > 50
-	AND es.session_id <> @@SPID 
+	AND es.session_id <> @@SPID
+	AND program_name = 'tclsh8.6'
 	OPTION (RECOMPILE);
 
 --Create a BatchID for this test
@@ -268,12 +270,13 @@ SET @loopcount = @DurationToLogInMinutes
 		FROM	TPSvalues
 		WHERE RowID_TPSvalues = @MaxRowID
 
-		SELECT @UserCount = COUNT(es.session_id)
+		SELECT @UserCount = COUNT(es.session_id)-1
 		FROM sys.dm_exec_sessions AS es WITH (NOLOCK)
 		CROSS APPLY sys.dm_exec_input_buffer(es.session_id, NULL) AS ib
 		WHERE es.database_id = DB_ID(@DatabaseName)
 		AND es.session_id > 50
-		AND es.session_id <> @@SPID 
+		AND es.session_id <> @@SPID
+		AND program_name = 'tclsh8.6'
 		OPTION (RECOMPILE);		
 
 	--Get the CPU Metrics as JSON. 
@@ -313,12 +316,13 @@ SET @loopcount = @DurationToLogInMinutes
 		WHERE RowID_TPSvalues = @MaxRowID
 
 
-		SELECT @UserCount = COUNT(es.session_id)
+		SELECT @UserCount = COUNT(es.session_id)-1
 		FROM sys.dm_exec_sessions AS es WITH (NOLOCK)
 		CROSS APPLY sys.dm_exec_input_buffer(es.session_id, NULL) AS ib
 		WHERE es.database_id = DB_ID(@DatabaseName)
 		AND es.session_id > 50
 		AND es.session_id <> @@SPID 
+		AND program_name = 'tclsh8.6'
 		OPTION (RECOMPILE);	
 
 
@@ -345,3 +349,5 @@ SELECT * FROM TPSvaluesHistory
 
 END --End proc
 GO
+
+
