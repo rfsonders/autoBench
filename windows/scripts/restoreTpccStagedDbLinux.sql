@@ -16,7 +16,6 @@ USE [master]
 GO
 	IF EXISTS(SELECT * FROM sys.databases WHERE name = 'tpcc')
 	BEGIN
-		ALTER DATABASE [tpcc] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
 		DROP DATABASE [tpcc]
 	END;
 
