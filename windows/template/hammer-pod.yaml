@@ -9,7 +9,7 @@ spec:
     image: sanran/hammerdb:v4.6-working
     command: 
       - "sleep"
-      - "604800"
+      - "7200"
     resources:
       requests:
         memory: "1G"
